@@ -58,7 +58,7 @@ end
 RegisterNetEvent('esx_vehicleshop:setVehicleOwnedPlayerId')
 AddEventHandler('esx_vehicleshop:setVehicleOwnedPlayerId', function(playerId, vehicleProps, model, label)
 	local xPlayer, xTarget = ESX.GetPlayerFromId(source), ESX.GetPlayerFromId(playerId)
-
+	local _source = source
 	if xPlayer.job.name == 'cardealer' and xTarget then
 		MySQL.Async.fetchAll('SELECT id FROM cardealer_vehicles WHERE vehicle = @vehicle LIMIT 1', {
 			['@vehicle'] = model
@@ -75,8 +75,9 @@ AddEventHandler('esx_vehicleshop:setVehicleOwnedPlayerId', function(playerId, ve
 							['@plate']   = vehicleProps.plate,
 							['@vehicle'] = json.encode(vehicleProps)
 						}, function(rowsChanged)
-							xPlayer.showNotification(_U('vehicle_set_owned', vehicleProps.plate, xTarget.getName()))
-							xTarget.showNotification(_U('vehicle_belongs', vehicleProps.plate))
+							TriggerClientEvent('esx:showNotification', _source, _U('vehicle_set_owned', vehicleProps.plate, xTarget.getName()))
+							TriggerClientEvent('esx:showNotification', _source, _U('vehicle_belongs', vehicleProps.plate))
+							
 						end)
 
 						local dateNow = os.date('%Y-%m-%d %H:%M')
@@ -103,6 +104,7 @@ end)
 
 RegisterNetEvent('esx_vehicleshop:rentVehicle')
 AddEventHandler('esx_vehicleshop:rentVehicle', function(vehicle, plate, rentPrice, playerId)
+	local _source = source
 	local xPlayer, xTarget = ESX.GetPlayerFromId(source), ESX.GetPlayerFromId(playerId)
 
 	if xPlayer.job.name == 'cardealer' and xTarget then
@@ -124,7 +126,8 @@ AddEventHandler('esx_vehicleshop:rentVehicle', function(vehicle, plate, rentPric
 							['@rent_price']  = rentPrice,
 							['@owner']       = xTarget.identifier
 						}, function(rowsChanged2)
-							xPlayer.showNotification(_U('vehicle_set_rented', plate, xTarget.getName()))
+							TriggerClientEvent('esx:showNotification', _source, _U('vehicle_set_rented', plate, xTarget.getName()))
+							
 						end)
 					end
 				end)
@@ -137,6 +140,7 @@ RegisterNetEvent('esx_vehicleshop:getStockItem')
 AddEventHandler('esx_vehicleshop:getStockItem', function(itemName, count)
 	local _source = source
 	local xPlayer = ESX.GetPlayerFromId(_source)
+	local _source = source
 
 	TriggerEvent('esx_addoninventory:getSharedInventory', 'society_cardealer', function(inventory)
 		local item = inventory.getItem(itemName)
@@ -148,12 +152,13 @@ AddEventHandler('esx_vehicleshop:getStockItem', function(itemName, count)
 			if xPlayer.canCarryItem(itemName, count) then
 				inventory.removeItem(itemName, count)
 				xPlayer.addInventoryItem(itemName, count)
-				xPlayer.showNotification(_U('have_withdrawn', count, item.label))
+				TriggerClientEvent('esx:showNotification', _source, _U('have_withdrawn', count, item.label))
 			else
-				xPlayer.showNotification(_U('player_cannot_hold'))
+				TriggerClientEvent('esx:showNotification', _source, _U('player_cannot_hold'))
 			end
 		else
-			xPlayer.showNotification(_U('not_enough_in_society'))
+			TriggerClientEvent('esx:showNotification', _source, _U('not_enough_in_society'))
+			
 		end
 	end)
 end)
@@ -162,6 +167,7 @@ RegisterNetEvent('esx_vehicleshop:putStockItems')
 AddEventHandler('esx_vehicleshop:putStockItems', function(itemName, count)
 	local _source = source
 	local xPlayer = ESX.GetPlayerFromId(_source)
+	local _source = source
 
 	TriggerEvent('esx_addoninventory:getSharedInventory', 'society_cardealer', function(inventory)
 		local item = inventory.getItem(itemName)
@@ -169,9 +175,9 @@ AddEventHandler('esx_vehicleshop:putStockItems', function(itemName, count)
 		if item.count >= 0 then
 			xPlayer.removeInventoryItem(itemName, count)
 			inventory.addItem(itemName, count)
-			xPlayer.showNotification(_U('have_deposited', count, item.label))
+			TriggerClientEvent('esx:showNotification', _source, _U('have_deposited', count, item.label))
 		else
-			xPlayer.showNotification(_U('invalid_amount'))
+			TriggerClientEvent('esx:showNotification', _source, _U('invalid_amount'))
 		end
 	end)
 end)
@@ -187,6 +193,7 @@ end)
 ESX.RegisterServerCallback('esx_vehicleshop:buyVehicle', function(source, cb, model, plate)
 	local xPlayer = ESX.GetPlayerFromId(source)
 	local modelPrice
+	local _source = source
 
 	for k,v in ipairs(vehicles) do
 		if model == v.model then
@@ -203,7 +210,7 @@ ESX.RegisterServerCallback('esx_vehicleshop:buyVehicle', function(source, cb, mo
 			['@plate']   = plate,
 			['@vehicle'] = json.encode({model = GetHashKey(model), plate = plate})
 		}, function(rowsChanged)
-			TriggerClientEvent('esx:showNotification', source, _U('vehicle_belongs', plate))
+			TriggerClientEvent('esx:showNotification', _source, _U('vehicle_belongs', plate))
 			cb(true)
 		end)
 	else
@@ -252,7 +259,7 @@ end)
 RegisterNetEvent('esx_vehicleshop:returnProvider')
 AddEventHandler('esx_vehicleshop:returnProvider', function(vehicleModel)
 	local xPlayer = ESX.GetPlayerFromId(source)
-
+	local _source = source
 	if xPlayer.job.name == 'cardealer' then
 		MySQL.Async.fetchAll('SELECT id, price FROM cardealer_vehicles WHERE vehicle = @vehicle LIMIT 1', {
 			['@vehicle'] = vehicleModel
@@ -269,7 +276,7 @@ AddEventHandler('esx_vehicleshop:returnProvider', function(vehicleModel)
 							local vehicleLabel = getVehicleLabelFromModel(vehicleModel)
 
 							account.addMoney(price)
-							xPlayer.showNotification(_U('vehicle_sold_for', vehicleLabel, ESX.Math.GroupDigits(price)))
+							TriggerClientEvent('esx:showNotification', _source, _U('vehicle_sold_for', vehicleLabel, ESX.Math.GroupDigits(price)))
 						end)
 					end
 				end)
@@ -434,13 +441,13 @@ function PayRent(d, h, m)
 		for k,v in ipairs(result) do
 			table.insert(tasks, function(cb)
 				local xPlayer = ESX.GetPlayerFromIdentifier(v.owner)
-
+				local _source = source
 				if xPlayer then
 					if xPlayer.getAccount('bank').money >= v.rent_price then
 						xPlayer.removeAccountMoney('bank', v.rent_price)
-						xPlayer.showNotification(_U('paid_rental', ESX.Math.GroupDigits(v.rent_price), v.plate))
+						TriggerClientEvent('esx:showNotification', _source, _U('paid_rental', ESX.Math.GroupDigits(v.rent_price), v.plate))
 					else
-						xPlayer.showNotification(_U('paid_rental_evicted', ESX.Math.GroupDigits(v.rent_price), v.plate))
+						TriggerClientEvent('esx:showNotification', _source, _U('paid_rental_evicted', ESX.Math.GroupDigits(v.rent_price), v.plate))
 						UnrentVehicleAsync(v.owner, v.plate)
 					end
 				else
