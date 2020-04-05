@@ -203,7 +203,7 @@ ESX.RegisterServerCallback('esx_vehicleshop:buyVehicle', function(source, cb, mo
 			['@plate']   = plate,
 			['@vehicle'] = json.encode({model = GetHashKey(model), plate = plate})
 		}, function(rowsChanged)
-			xPlayer.showNotification(_U('vehicle_belongs', plate))
+			TriggerClientEvent('esx:showNotification', source, _U('vehicle_belongs', plate))
 			cb(true)
 		end)
 	else
